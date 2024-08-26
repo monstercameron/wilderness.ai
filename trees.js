@@ -69,12 +69,12 @@ const placeLargeTreeClusters = (grid, treeMaterial) => {
 
   const placeTree = (x, y) => {
     if (!UtilsModule.isValidPosition(x, y, gridSize) || grid[x][y].hasTree) {
-      console.log(
-        `Cannot place tree at (${x}, ${y}): Invalid position or tree already exists`
-      );
+    //   console.log(
+    //     `Cannot place tree at (${x}, ${y}): Invalid position or tree already exists`
+    //   );
       return false;
     }
-    console.log(`Placing tree at (${x}, ${y})`);
+    // console.log(`Placing tree at (${x}, ${y})`);
     grid[x][y].mesh.material = treeMaterial;
     grid[x][y].hasTree = true;
     treesPlaced++;
@@ -82,9 +82,9 @@ const placeLargeTreeClusters = (grid, treeMaterial) => {
   };
 
   const createLargeClump = (startX, startY, size) => {
-    console.log(
-      `Creating large clump starting at (${startX}, ${startY}) with size ${size}`
-    );
+    // console.log(
+    //   `Creating large clump starting at (${startX}, ${startY}) with size ${size}`
+    // );
     let queue = [{ x: startX, y: startY }];
     let placed = 0;
 
@@ -109,7 +109,7 @@ const placeLargeTreeClusters = (grid, treeMaterial) => {
         queue.sort(() => Math.random() - 0.5);
       }
     }
-    console.log(`Large clump created. Placed ${placed} trees.`);
+    // console.log(`Large clump created. Placed ${placed} trees.`);
   };
 
   // Place large clumps
@@ -117,16 +117,16 @@ const placeLargeTreeClusters = (grid, treeMaterial) => {
   const minClumpSize = 100;
   const maxClumpSize = 300;
 
-  console.log(`Placing ${numLargeClumps} large clumps...`);
+//   console.log(`Placing ${numLargeClumps} large clumps...`);
   for (let c = 0; c < numLargeClumps && treesPlaced < targetTreeSquares; c++) {
     let x = Math.floor(Math.random() * gridSize);
     let y = Math.floor(Math.random() * gridSize);
     let clumpSize =
       Math.floor(Math.random() * (maxClumpSize - minClumpSize + 1)) +
       minClumpSize;
-    console.log(
-      `Creating large clump ${c + 1} at (${x}, ${y}) with size ${clumpSize}`
-    );
+    // console.log(
+    //   `Creating large clump ${c + 1} at (${x}, ${y}) with size ${clumpSize}`
+    // );
     createLargeClump(x, y, clumpSize);
   }
 
@@ -136,7 +136,7 @@ const placeLargeTreeClusters = (grid, treeMaterial) => {
     let x = Math.floor(Math.random() * gridSize);
     let y = Math.floor(Math.random() * gridSize);
     let clumpSize = Math.floor(Math.random() * 50) + 10; // 10 to 59 trees
-    console.log(`Creating small clump at (${x}, ${y}) with size ${clumpSize}`);
+    // console.log(`Creating small clump at (${x}, ${y}) with size ${clumpSize}`);
     createLargeClump(x, y, clumpSize);
   }
 

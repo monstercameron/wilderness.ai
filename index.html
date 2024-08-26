@@ -38,25 +38,5 @@
 
     <!-- Main game script -->
     <script src="main.js"></script>
-
-    <script>
-      // Initialize the game when all scripts are loaded
-      window.addEventListener('load', () => {
-        console.log("Window loaded. Attempting to initialize game...");
-        if (window.GameModule && window.GameModule.initGame) {
-          try {
-            window.GameModule.initGame();
-            console.log("Game initialized successfully.");
-            // Set up AI movement after game initialization
-            window.aiMoveInterval = setInterval(window.GameModule.triggerGazelleAIMove, 15000);
-            console.log("AI movement interval set.");
-          } catch (error) {
-            console.error("Error during game initialization:", error);
-          }
-        } else {
-          console.error('Game initialization failed: GameModule not found');
-        }
-      });
-    </script>
   </body>
 </html>

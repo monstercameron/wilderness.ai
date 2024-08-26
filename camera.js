@@ -1,26 +1,62 @@
 // camera.js
+
+/**
+ * @constant {number} Initial zoom level
+ */
 const INITIAL_ZOOM = 75;
+
+/**
+ * @constant {number} Minimum zoom level
+ */
 const MIN_ZOOM = 5;
+
+/**
+ * @constant {number} Maximum zoom level
+ */
 const MAX_ZOOM = 100;
+
+/**
+ * @constant {number} Pan speed
+ */
 const PAN_SPEED = 0.1;
+
+/**
+ * @constant {number} Zoom speed
+ */
 const ZOOM_SPEED = 0.1;
 
+/**
+ * Creates a camera
+ * @param {number} aspectRatio - The aspect ratio of the viewport
+ * @returns {THREE.PerspectiveCamera} The created camera
+ */
 const createCamera = (aspectRatio) => {
   const camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 1000);
   camera.position.z = INITIAL_ZOOM;
+  window.UtilsModule.debug("Camera created", { position: camera.position });
   return camera;
 };
 
+/**
+ * Creates the initial camera state
+ * @param {number} gridSize - The size of the grid
+ * @returns {Object} The initial camera state
+ */
 const createCameraState = (gridSize) => ({
   isDragging: false,
   previousMousePosition: { x: 0, y: 0 },
   panLimit: gridSize / 2,
 });
 
-const debugOutput = (message) => {
-  console.log(`[DEBUG] ${message}`);
-};
-
+/**
+ * Updates the camera position
+ * @param {THREE.PerspectiveCamera} camera - The camera to update
+ * @param {number} deltaX - The change in X position
+ * @param {number} deltaY - The change in Y position
+ * @param {number} zoomFactor - The current zoom factor
+ * @param {number} panLimit - The limit for panning
+ * @returns {THREE.PerspectiveCamera} The updated camera
+ */
 const updateCameraPosition = (camera, deltaX, deltaY, zoomFactor, panLimit) => {
   const newX = Math.max(
     -panLimit,
@@ -31,35 +67,51 @@ const updateCameraPosition = (camera, deltaX, deltaY, zoomFactor, panLimit) => {
     Math.min(panLimit, camera.position.y + deltaY * PAN_SPEED * zoomFactor)
   );
 
-  debugOutput(
-    `Camera position before: (${camera.position.x}, ${camera.position.y}, ${camera.position.z})`
-  );
+  window.UtilsModule.debug("Updating camera position", {
+    before: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+    after: { x: newX, y: newY, z: camera.position.z },
+  });
+
   camera.position.x = newX;
   camera.position.y = newY;
-  debugOutput(
-    `Camera position after: (${camera.position.x}, ${camera.position.y}, ${camera.position.z})`
-  );
 
   return camera;
 };
 
+/**
+ * Updates the camera zoom
+ * @param {THREE.PerspectiveCamera} camera - The camera to update
+ * @param {number} zoomDelta - The change in zoom level
+ * @returns {THREE.PerspectiveCamera} The updated camera
+ */
 const updateCameraZoom = (camera, zoomDelta) => {
   const newZoom = Math.max(
     MIN_ZOOM,
     Math.min(MAX_ZOOM, camera.position.z + zoomDelta)
   );
-  debugOutput(`Camera zoom before: ${camera.position.z}`);
+
+  window.UtilsModule.debug("Updating camera zoom", {
+    before: camera.position.z,
+    after: newZoom,
+  });
+
   camera.position.z = newZoom;
-  debugOutput(`Camera zoom after: ${camera.position.z}`);
   return camera;
 };
 
+/**
+ * Creates camera controls
+ * @param {THREE.PerspectiveCamera} camera - The camera to control
+ * @param {Object} cameraState - The current camera state
+ * @param {HTMLElement} sceneElement - The DOM element for the scene
+ * @returns {Object} The camera control functions
+ */
 const createCameraControls = (camera, cameraState, sceneElement) => {
   const handleMouseDown = (e) => {
     cameraState.isDragging = true;
     sceneElement.style.cursor = "grabbing";
     cameraState.previousMousePosition = { x: e.clientX, y: e.clientY };
-    debugOutput(`Mouse down at (${e.clientX}, ${e.clientY})`);
+    window.UtilsModule.debug("Mouse down", { position: cameraState.previousMousePosition });
   };
 
   const handleMouseMove = (e) => {
@@ -70,9 +122,7 @@ const createCameraControls = (camera, cameraState, sceneElement) => {
       };
       const zoomFactor = camera.position.z / INITIAL_ZOOM;
 
-      debugOutput(
-        `Mouse move: delta (${deltaMove.x}, ${deltaMove.y}), zoom factor: ${zoomFactor}`
-      );
+      window.UtilsModule.debug("Mouse move", { deltaMove, zoomFactor });
 
       updateCameraPosition(
         camera,
@@ -89,24 +139,23 @@ const createCameraControls = (camera, cameraState, sceneElement) => {
   const handleMouseUp = () => {
     cameraState.isDragging = false;
     sceneElement.style.cursor = "grab";
-    debugOutput("Mouse up");
+    window.UtilsModule.debug("Mouse up");
   };
 
   const handleMouseLeave = () => {
     cameraState.isDragging = false;
     sceneElement.style.cursor = "default";
-    debugOutput("Mouse leave");
+    window.UtilsModule.debug("Mouse leave");
   };
 
   const handleWheel = (event) => {
     const zoomDelta = event.deltaY * ZOOM_SPEED;
-    debugOutput(`Wheel event: delta ${event.deltaY}, zoom delta ${zoomDelta}`);
+    window.UtilsModule.debug("Wheel event", { deltaY: event.deltaY, zoomDelta });
     updateCameraZoom(camera, zoomDelta);
   };
 
-  // Add console.log statements to check if the functions are being called
   const addEventListeners = () => {
-    console.log("Adding event listeners");
+    window.UtilsModule.debug("Adding camera control event listeners");
     sceneElement.addEventListener("mousedown", handleMouseDown);
     sceneElement.addEventListener("mousemove", handleMouseMove);
     sceneElement.addEventListener("mouseup", handleMouseUp);
@@ -114,14 +163,13 @@ const createCameraControls = (camera, cameraState, sceneElement) => {
     sceneElement.addEventListener("wheel", handleWheel);
   };
 
-  // Call the function to add event listeners
   addEventListeners();
 
   sceneElement.style.cursor = "grab";
 
   return {
     dispose: () => {
-      console.log("Removing event listeners");
+      window.UtilsModule.debug("Removing camera control event listeners");
       sceneElement.removeEventListener("mousedown", handleMouseDown);
       sceneElement.removeEventListener("mousemove", handleMouseMove);
       sceneElement.removeEventListener("mouseup", handleMouseUp);
@@ -138,5 +186,4 @@ window.CameraModule = {
   createCameraControls,
 };
 
-// Add a check to ensure the module is loaded
-console.log("CameraModule loaded:", window.CameraModule);
+window.UtilsModule.debug("CameraModule loaded");

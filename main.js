@@ -1,208 +1,345 @@
-// main.js
+/**
+ * @typedef {Object} GameState
+ * @property {THREE.Scene} scene - The Three.js scene
+ * @property {THREE.WebGLRenderer} renderer - The Three.js renderer
+ * @property {THREE.Camera} camera - The game camera
+ * @property {Array<Array<Object>>} grid - The game grid
+ * @property {Object} gazelle - The gazelle object
+ * @property {Object} materials - The game materials
+ */
 
-let gameState = {
-  scene: null,
-  renderer: null,
-  camera: null,
-  grid: null,
-  gazelle: null,
-  materials: null,
-  cleanupFunctions: [],
+/**
+ * Initializes the game state
+ * @returns {GameState} The initial game state
+ */
+const initGame = () => {
+  window.UtilsModule.debug("Initializing game...");
+
+  const { scene, renderer } = window.SceneModule.initScene();
+  window.UtilsModule.debug("Scene and renderer initialized");
+
+  const camera = window.CameraModule.createCamera(
+    window.innerWidth / window.innerHeight
+  );
+  window.UtilsModule.debug("Camera created");
+
+  const materials = window.MaterialsModule.createMaterials();
+  window.UtilsModule.debug("Materials created", materials);
+
+  const grid = window.GridModule.createGrid(scene, materials);
+  window.UtilsModule.debug("Initial grid created", { gridSize: grid.length });
+
+  const updatedGrid = window.TreePlacementModule.placeLargeTreeClusters(
+    grid,
+    materials.tree
+  );
+  window.UtilsModule.debug("Trees placed on grid", {
+    treeCells: updatedGrid.flat().filter((cell) => cell.hasTree).length,
+  });
+
+  const { updatedGrid: gridWithFood, newMeshes } =
+    window.FoodPlacementModule.placeFoodItems(
+      updatedGrid,
+      window.UtilsModule.GRID_SIZE,
+      window.UtilsModule.SQUARE_SIZE,
+      materials,
+      scene
+    );
+  window.UtilsModule.debug("Food placed on grid", { foodItems: newMeshes.length });
+
+  newMeshes.forEach((mesh) => scene.add(mesh));
+
+  const gazelle = window.GazelleModule.placeGazelle(
+    gridWithFood,
+    window.UtilsModule.GRID_SIZE,
+    window.UtilsModule.SQUARE_SIZE,
+    scene
+  );
+  window.UtilsModule.debug("Gazelle placed", { position: { x: gazelle.x, y: gazelle.y } });
+
+  return {
+    scene,
+    renderer,
+    camera,
+    grid: gridWithFood,
+    gazelle,
+    materials,
+  };
 };
 
-function initGame() {
-  console.log("Initializing game...");
+/**
+ * Moves the gazelle in the specified direction
+ * @param {GameState} state - The current game state
+ * @param {string} direction - The direction to move the gazelle
+ * @returns {GameState} The updated game state
+ */
+const moveGazelle = (state, direction) => {
+  const { gazelle, grid, scene } = state;
 
-  try {
-    // Initialize scene
-    console.log("Initializing scene...");
-    const { scene, renderer } = window.SceneModule.initScene();
-    gameState.scene = scene;
-    gameState.renderer = renderer;
-    console.log("Scene initialized.");
-
-    // Setup camera
-    console.log("Setting up camera...");
-    gameState.camera = window.CameraModule.createCamera(
-      window.innerWidth / window.innerHeight
-    );
-    const cleanupResize = window.SceneModule.setupWindowResize(
-      gameState.camera,
-      gameState.renderer
-    );
-    gameState.cleanupFunctions.push(cleanupResize);
-    console.log("Camera set up.");
-
-    // Setup camera controls
-    console.log("Setting up camera controls...");
-    const sceneElement = document.getElementById("scene");
-    const cameraState = window.CameraModule.createCameraState(
-      UtilsModule.GRID_SIZE
-    );
-    const cameraControls = window.CameraModule.createCameraControls(
-      gameState.camera,
-      cameraState,
-      sceneElement
-    );
-    gameState.cleanupFunctions.push(cameraControls.dispose);
-    console.log("Camera controls set up.");
-
-    // Create materials
-    console.log("Creating materials...");
-    gameState.materials = window.MaterialsModule.createMaterials();
-    console.log("Materials created:", gameState.materials);
-
-    // Create grid
-    console.log("Creating grid...");
-    gameState.grid = window.GridModule.createGrid(
-      gameState.scene,
-      gameState.materials
-    );
-    console.log("Grid created. Sample cell:", gameState.grid[0][0]);
-
-    // Place trees
-    console.log("Placing trees...");
-    console.log("Tree material:", gameState.materials.tree);
-    gameState.grid = window.TreePlacementModule.placeLargeTreeClusters(
-      gameState.grid,
-      gameState.materials.tree
-    );
-    console.log(
-      "Trees placed. Sample cell after placement:",
-      gameState.grid[0][0]
-    );
-
-    // Place food
-    console.log("Placing food...");
-    const { updatedGrid, newMeshes } =
-      window.FoodPlacementModule.placeFoodItems(
-        gameState.grid,
-        UtilsModule.GRID_SIZE,
-        UtilsModule.SQUARE_SIZE,
-        gameState.materials,
-        gameState.scene
-      );
-    gameState.grid = updatedGrid;
-    newMeshes.forEach((mesh) => gameState.scene.add(mesh));
-    console.log(
-      "Food placed. Sample cell after food placement:",
-      gameState.grid[0][0]
-    );
-
-    // Place gazelle
-    console.log("Placing gazelle...");
-    gameState.gazelle = window.GazelleSimulation.placeGazelle(
-      gameState.grid,
-      UtilsModule.GRID_SIZE,
-      UtilsModule.SQUARE_SIZE,
-      gameState.scene
-    );
-    console.log("Gazelle placed:", gameState.gazelle);
-
-    // Start animation loop
-    console.log("Starting animation loop...");
-    const animate = window.SceneModule.createAnimationLoop(
-      gameState.renderer,
-      gameState.scene,
-      gameState.camera
-    );
-    animate();
-    console.log("Animation loop started.");
-
-    // Set up event listeners
-    console.log("Setting up event listeners...");
-    setupEventListeners();
-    console.log("Event listeners set up.");
-
-    console.log("Game initialization complete");
-  } catch (error) {
-    console.error("Error during game initialization:", error);
-    console.error("Error stack:", error.stack);
+  if (!gazelle) {
+    window.UtilsModule.debug("Cannot move gazelle: Gazelle not initialized");
+    return state;
   }
-}
 
-function moveGazelle(direction) {
-  if (gameState.gazelle) {
-    console.log(`Attempting to move gazelle in direction: ${direction}`);
-    const newState = window.GazelleSimulation.move(
-      gameState.gazelle,
-      direction
-    );
-    if (newState !== gameState.gazelle) {
-      gameState.gazelle = newState;
-      gameState.grid = newState.grid;
-      console.log(`Gazelle moved to:`, gameState.gazelle.position);
-      console.log(`Updated grid state:`, gameState.grid);
-    } else {
-      console.log(
-        `Gazelle movement in direction ${direction} was not possible`
-      );
+  window.UtilsModule.debug(`Attempting to move gazelle in direction: ${direction}`, {
+    currentPosition: { x: gazelle.x, y: gazelle.y },
+  });
+
+  const newGazelleState = window.GazelleModule.move(gazelle, direction, grid);
+
+  if (newGazelleState === gazelle) {
+    window.UtilsModule.debug("Gazelle movement was blocked or invalid");
+    return state;
+  }
+
+  const {
+    x,
+    y,
+    gridSize,
+    squareSize,
+    direction: newDirection,
+    thoughts,
+  } = newGazelleState;
+
+  // Update visual representation
+  window.GazelleModule.updateGazelleMeshPosition(
+    newGazelleState.mesh,
+    x,
+    y,
+    gridSize,
+    squareSize
+  );
+  window.GazelleModule.updateGazelleMeshTexture(
+    newGazelleState.mesh,
+    newDirection
+  );
+  window.GazelleModule.updateSpeechBubblePosition(
+    newGazelleState.speechBubble,
+    x,
+    y,
+    gridSize,
+    squareSize
+  );
+  window.GazelleModule.updateSpeechBubble(
+    newGazelleState.speechBubble,
+    thoughts
+  );
+
+  window.UtilsModule.debug(`Gazelle moved to (${x}, ${y})`, { newDirection, thoughts });
+
+  // Check if food was consumed and update the scene if necessary
+  let updatedScene = scene;
+  if (newGazelleState.grid[x][y].food === 0) {
+    const foodMesh = scene.getObjectByName(`food_${x}_${y}`);
+    if (foodMesh) {
+      updatedScene = removeObjectFromScene(scene, foodMesh);
+      window.UtilsModule.debug(`Removed food mesh at (${x}, ${y})`);
     }
-  } else {
-    console.warn("Gazelle not initialized");
   }
-}
 
-function setupEventListeners() {
-  // Event listener for gazelle movement
+  return {
+    ...state,
+    gazelle: newGazelleState,
+    grid: newGazelleState.grid,
+    scene: updatedScene,
+  };
+};
+
+/**
+ * Removes an object from a scene
+ * @param {THREE.Scene} scene - The current scene
+ * @param {THREE.Object3D} object - The object to remove
+ * @returns {THREE.Scene} A new scene with the object removed
+ */
+const removeObjectFromScene = (scene, object) => {
+  const newScene = scene.clone();
+  newScene.remove(object);
+  window.UtilsModule.debug(`Object removed from scene`, { objectName: object.name });
+  return newScene;
+};
+
+/**
+ * Checks the game state for win/lose conditions
+ * @param {GameState} state - The current game state
+ * @returns {GameState} The updated game state
+ */
+const checkGameState = (state) => {
+  const { gazelle, grid } = state;
+  const { health } = gazelle.vitalityStats;
+  const { x, y } = gazelle;
+
+  window.UtilsModule.debug("Checking game state", { gazellePosition: { x, y }, health });
+
+  if (health <= 0) {
+    window.UtilsModule.debug("Game over: Gazelle health reached 0");
+    return { ...state, gameOver: true, gameOverReason: "health" };
+  }
+
+  // Check for win conditions, if any
+  // For example, if the gazelle has eaten all the food
+  let remainingFood = false;
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      if (grid[i][j].food > 0) {
+        remainingFood = true;
+        break;
+      }
+    }
+    if (remainingFood) break;
+  }
+
+  if (!remainingFood) {
+    window.UtilsModule.debug("Congratulations! The gazelle has eaten all the food");
+    return { ...state, gameWon: true };
+  }
+
+  return state;
+};
+
+/**
+ * Main update function to be called on each frame
+ * @param {GameState} state - The current game state
+ * @returns {GameState} The updated game state
+ */
+const updateGameState = (state) => {
+  window.UtilsModule.debug("Updating game state");
+  const updatedGazelleState = window.GazelleModule.updateGazelleState(
+    state.gazelle
+  );
+  window.UtilsModule.debug("Gazelle state updated", {
+    position: { x: updatedGazelleState.x, y: updatedGazelleState.y },
+    vitalityStats: updatedGazelleState.vitalityStats,
+  });
+  const newState = { ...state, gazelle: updatedGazelleState };
+  return checkGameState(newState);
+};
+
+/**
+ * Sets up event listeners for the game
+ * @param {function} moveGazelleCallback - The callback function to move the gazelle
+ */
+const setupEventListeners = (moveGazelleCallback) => {
+  const keyToDirection = {
+    ArrowUp: "N",
+    ArrowRight: "E",
+    ArrowDown: "S",
+    ArrowLeft: "W",
+    Home: "NW",
+    PageUp: "NE",
+    End: "SW",
+    PageDown: "SE",
+    Space: "N",
+  };
+
   document.addEventListener("keydown", (event) => {
-    const keyToDirection = {
-      ArrowUp: "N",
-      ArrowRight: "E",
-      ArrowDown: "S",
-      ArrowLeft: "W",
-      Home: "NW",
-      PageUp: "NE",
-      End: "SW",
-      PageDown: "SE",
-      Space: "N", // Move North when spacebar is pressed
-    };
     if (keyToDirection[event.code]) {
-      moveGazelle(keyToDirection[event.code]);
+      window.UtilsModule.debug(`Key pressed: ${event.code}`, {
+        direction: keyToDirection[event.code],
+      });
+      moveGazelleCallback(keyToDirection[event.code]);
     }
   });
-}
 
-// Function to trigger API-based movement
-function triggerGazelleAIMove() {
+  window.UtilsModule.debug("Event listeners set up");
+};
+
+/**
+ * Renders the current game state
+ * @param {GameState} gameState - The current game state
+ */
+const renderGame = (gameState) => {
+  // Implement rendering logic here
+  window.UtilsModule.debug("Rendering game state:", gameState);
+};
+
+/**
+ * Handles the end of the game
+ * @param {GameState} gameState - The final game state
+ */
+const handleGameEnd = (gameState) => {
+  if (gameState.gameOver) {
+    window.UtilsModule.debug("Game over:", gameState.gameOverReason);
+  } else if (gameState.gameWon) {
+    window.UtilsModule.debug("Game won!");
+  }
+  clearInterval(window.aiMoveInterval);
+};
+
+/**
+ * Triggers an AI move for the gazelle
+ * @param {GameState} gameState - The current game state
+ * @returns {GameState} The updated game state after the AI move
+ */
+const triggerAIMove = (gameState) => {
   if (gameState.gazelle) {
-    console.log("Triggering AI move for gazelle");
     const surroundings = window.GazelleSimulation.getSurroundingGrid(
       gameState.gazelle
     );
     const stringRepr = window.GazelleSimulation.gridToString(surroundings);
-    console.log("Surrounding grid:", stringRepr);
+    window.UtilsModule.debug("AI Move - Surrounding grid:", stringRepr);
 
     // Here you would typically make an API call with the stringRepr
     // For now, we'll just move in a random direction
     const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
     const randomDirection =
       directions[Math.floor(Math.random() * directions.length)];
-    console.log(`AI chose random direction: ${randomDirection}`);
-    moveGazelle(randomDirection);
-  } else {
-    console.warn("Cannot trigger AI move: Gazelle not initialized");
+    window.UtilsModule.debug(`AI chose random direction: ${randomDirection}`);
+    return moveGazelle(gameState, randomDirection);
   }
-}
+  return gameState;
+};
 
-// Cleanup function to be called when the game needs to be reset or closed
-function cleanupGame() {
-  console.log("Cleaning up game...");
-  gameState.cleanupFunctions.forEach((cleanup) => cleanup());
-  // Remove event listeners
-  document.removeEventListener("keydown", setupEventListeners);
-  // Stop the AI movement interval
-  clearInterval(window.aiMoveInterval);
-  // Additional cleanup logic can be added here
-  console.log("Game cleanup complete");
-}
+/**
+ * Starts the game
+ */
+const startGame = () => {
+  window.UtilsModule.debug("Starting game...");
+  let gameState = initGame();
+
+  // Set up game loop
+  const gameLoop = () => {
+    gameState = updateGameState(gameState);
+    renderGame(gameState);
+    if (gameState.gameOver || gameState.gameWon) {
+      handleGameEnd(gameState);
+    } else {
+      requestAnimationFrame(gameLoop);
+    }
+  };
+
+  // Start the game loop
+  gameLoop();
+
+  // Set up event listeners for gazelle movement
+  setupEventListeners((direction) => {
+    gameState = moveGazelle(gameState, direction);
+  });
+
+  // Set up AI movement interval
+  window.aiMoveInterval = setInterval(() => {
+    gameState = triggerAIMove(gameState);
+  }, 15000);
+  window.UtilsModule.debug("AI movement interval set.");
+};
 
 // Expose necessary functions to the global scope
 window.GameModule = {
   initGame,
   moveGazelle,
-  triggerGazelleAIMove,
-  cleanupGame,
+  updateGameState,
+  setupEventListeners,
+  startGame,
 };
 
-console.log("Main game module loaded.");
+// Start the game when the window loads
+window.addEventListener("load", () => {
+  window.UtilsModule.debug("Window loaded. Attempting to start game...");
+  try {
+    window.GameModule.startGame();
+    window.UtilsModule.debug("Game started successfully.");
+  } catch (error) {
+    console.error("Error during game start:", error);
+  }
+});
+
+window.UtilsModule.debug("Main game module loaded");
