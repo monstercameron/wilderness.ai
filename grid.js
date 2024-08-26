@@ -56,7 +56,7 @@ const createGrid = (scene, materials) => {
     }
   }
 
-  window.UtilsModule.debug("Grid created", { sampleCell: grid[0][0] });
+//   window.UtilsModule.debug("Grid created", { sampleCell: grid[0][0] });
   return grid;
 };
 

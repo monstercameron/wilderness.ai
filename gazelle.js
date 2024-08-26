@@ -5,20 +5,15 @@ const createGazelleMesh = (x, y, direction, gridSize, squareSize) => {
   const mesh = new THREE.Mesh(geometry, material);
   updateGazelleMeshTexture(mesh, direction);
   updateGazelleMeshPosition(mesh, x, y, gridSize, squareSize);
+  window.UtilsModule.debug("Gazelle mesh created", { position: { x, y }, direction });
   return mesh;
 };
 
-const updateMeshTexture = (mesh, direction) => {
+const updateGazelleMeshTexture = (mesh, direction) => {
   const gazelleEmoji = "🦌";
   const directionEmojis = {
-    N: "⬆️",
-    NE: "↗️",
-    E: "➡️",
-    SE: "↘️",
-    S: "⬇️",
-    SW: "↙️",
-    W: "⬅️",
-    NW: "↖️",
+    N: "⬆️", NE: "↗️", E: "➡️", SE: "↘️",
+    S: "⬇️", SW: "↙️", W: "⬅️", NW: "↖️"
   };
 
   const canvas = document.createElement("canvas");
@@ -34,10 +29,16 @@ const updateMeshTexture = (mesh, direction) => {
   const texture = new THREE.CanvasTexture(canvas);
   mesh.material.map = texture;
   mesh.material.needsUpdate = true;
+  window.UtilsModule.debug("Gazelle mesh texture updated", { direction });
 };
 
-const updateMeshPosition = (mesh, x, y, gridSize) => {
-  mesh.position.set(x - gridSize / 2 + 0.5, y - gridSize / 2 + 0.5, 0.2);
+const updateGazelleMeshPosition = (mesh, x, y, gridSize, squareSize) => {
+  mesh.position.set(
+    x - gridSize / 2 + 0.5,
+    y - gridSize / 2 + 0.5,
+    0.1
+  );
+  window.UtilsModule.debug("Gazelle mesh position updated", { position: mesh.position });
 };
 
 const createSpeechBubble = (x, y, gridSize, squareSize) => {
@@ -49,6 +50,7 @@ const createSpeechBubble = (x, y, gridSize, squareSize) => {
   });
   const speechBubble = new THREE.Mesh(bubbleGeometry, bubbleMaterial);
   updateSpeechBubblePosition(speechBubble, x, y, gridSize, squareSize);
+  window.UtilsModule.debug("Speech bubble created", { position: speechBubble.position });
   return speechBubble;
 };
 
@@ -58,11 +60,11 @@ const updateSpeechBubblePosition = (speechBubble, x, y, gridSize, squareSize) =>
     y - gridSize / 2 + 1.5,
     0.2
   );
-  console.log("Speech bubble position updated:", speechBubble.position);
+  window.UtilsModule.debug("Speech bubble position updated", { position: speechBubble.position });
 };
 
 const placeGazelle = (grid, gridSize, squareSize, scene) => {
-  console.log("Placing gazelle...");
+  window.UtilsModule.debug("Placing gazelle...");
   let x, y;
   do {
     x = Math.floor(Math.random() * gridSize);
@@ -72,12 +74,12 @@ const placeGazelle = (grid, gridSize, squareSize, scene) => {
   const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
   const initialDirection = directions[Math.floor(Math.random() * directions.length)];
 
-  console.log(`Gazelle initial position: (${x}, ${y}), direction: ${initialDirection}`);
+  window.UtilsModule.debug(`Gazelle initial position: (${x}, ${y}), direction: ${initialDirection}`);
 
   const gazelle = createGazelle(x, y, initialDirection, gridSize, squareSize, scene, grid);
   updateSpeechBubble(gazelle.speechBubble, gazelle.thoughts);
 
-  console.log("Gazelle placed:", gazelle);
+  // window.UtilsModule.debug("Gazelle placed", gazelle);
   return gazelle;
 };
 
@@ -116,6 +118,7 @@ const updateSpeechBubble = (speechBubble, thoughts) => {
   const texture = new THREE.CanvasTexture(canvas);
   speechBubble.material.map = texture;
   speechBubble.material.needsUpdate = true;
+  window.UtilsModule.debug("Speech bubble updated", { thoughts });
 };
 
 const move = (gazelleState, direction, grid) => {
@@ -140,7 +143,7 @@ const move = (gazelleState, direction, grid) => {
       newGrid[newX][newY] = { ...newGrid[newX][newY], food: 0 };
     }
 
-    return {
+    const newState = {
       ...gazelleState,
       x: newX,
       y: newY,
@@ -148,9 +151,19 @@ const move = (gazelleState, direction, grid) => {
       thoughts: newGrid[newX][newY].food > 0 ? "Yum! That was tasty!" : "Just moved.",
       grid: newGrid
     };
+
+    window.UtilsModule.debug("Gazelle moved", {
+      from: { x, y },
+      to: { x: newX, y: newY },
+      direction,
+      thoughts: newState.thoughts
+    });
+
+    return newState;
   }
 
   // Return original state if movement was blocked
+  window.UtilsModule.debug("Gazelle movement blocked", { x, y, direction });
   return gazelleState;
 };
 
@@ -165,7 +178,7 @@ const updateVitalityStats = (state) => {
   else if (vitalityStats.fear > 70)
     newThoughts = "I feel unsafe. Need to be careful.";
 
-  return {
+  const newState = {
     ...state,
     thoughts: newThoughts,
     vitalityStats: {
@@ -174,40 +187,24 @@ const updateVitalityStats = (state) => {
       thirst: newThirst,
     },
   };
-};
 
-const getSurroundingGrid = (state) => {
-  const { x, y, grid } = state;
-  const surroundings = [];
-  for (let dy = -5; dy <= 4; dy++) {
-    const row = [];
-    for (let dx = -5; dx <= 4; dx++) {
-      const newX = x + dx;
-      const newY = y + dy;
-      if (newX >= 0 && newX < GRID_SIZE && newY >= 0 && newY < GRID_SIZE) {
-        if (grid[newX][newY].hasTree) row.push("T");
-        else if (grid[newX][newY].food > 0) row.push("F");
-        else row.push(".");
-      } else {
-        row.push("#"); // Out of bounds
-      }
-    }
-    surroundings.push(row);
-  }
-  return surroundings;
-};
+  window.UtilsModule.debug("Gazelle vitality stats updated", {
+    hunger: newHunger,
+    thirst: newThirst,
+    thoughts: newThoughts
+  });
 
-const gridToString = (grid) =>
-  grid.map((row) => row.join("")).join("\n") + "\n";
+  return newState;
+};
 
 const createGazelle = (x, y, direction, gridSize, squareSize, scene, grid) => {
-  console.log("Creating gazelle...");
+  window.UtilsModule.debug("Creating gazelle...");
   const mesh = createGazelleMesh(x, y, direction, gridSize, squareSize);
   const speechBubble = createSpeechBubble(x, y, gridSize, squareSize);
   scene.add(mesh);
   scene.add(speechBubble);
 
-  return {
+  const gazelle = {
     x,
     y,
     direction,
@@ -239,44 +236,17 @@ const createGazelle = (x, y, direction, gridSize, squareSize, scene, grid) => {
       mentalFocus: 55,
     }
   };
-};
 
-const updateGazelleMeshTexture = (mesh, direction) => {
-  const gazelleEmoji = "🦌";
-  const directionEmojis = {
-    N: "⬆️", NE: "↗️", E: "➡️", SE: "↘️",
-    S: "⬇️", SW: "↙️", W: "⬅️", NW: "↖️"
-  };
-
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
-  canvas.width = 128;
-  canvas.height = 64;
-  context.font = "50px Arial";
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.fillText(gazelleEmoji, 32, 32);
-  context.fillText(directionEmojis[direction], 96, 32);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  mesh.material.map = texture;
-  mesh.material.needsUpdate = true;
-};
-
-const updateGazelleMeshPosition = (mesh, x, y, gridSize, squareSize) => {
-  mesh.position.set(
-    x - gridSize / 2 + 0.5,
-    y - gridSize / 2 + 0.5,
-    0.1
-  );
-  console.log("Gazelle mesh position updated:", mesh.position);
+  // window.UtilsModule.debug("Gazelle created", gazelle);
+  return gazelle;
 };
 
 const updateGazelleState = (state) => {
   const newState = updateVitalityStats(state);
-  updateMeshPosition(newState.mesh, newState.x, newState.y, GRID_SIZE);
-  updateMeshTexture(newState.mesh, newState.direction);
+  updateGazelleMeshPosition(newState.mesh, newState.x, newState.y, window.UtilsModule.GRID_SIZE, window.UtilsModule.SQUARE_SIZE);
+  updateGazelleMeshTexture(newState.mesh, newState.direction);
   updateSpeechBubble(newState.speechBubble, newState.thoughts);
+  // window.UtilsModule.debug("Gazelle state updated", newState);
   return newState;
 };
 
@@ -291,4 +261,4 @@ window.GazelleModule = {
   updateGazelleState,
 };
 
-console.log("Gazelle Simulation loaded:", window.GazelleSimulation);
+window.UtilsModule.debug("GazelleModule loaded");

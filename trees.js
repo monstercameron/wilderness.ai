@@ -61,8 +61,8 @@ const createClump = (grid, startX, startY, size, gridSize, treeMaterial) => {
 };
 
 const placeLargeTreeClusters = (grid, treeMaterial) => {
-  console.log("Starting tree placement...");
-  const gridSize = UtilsModule.GRID_SIZE;
+  window.UtilsModule.debug("Starting tree placement...");
+  const gridSize = window.UtilsModule.GRID_SIZE;
   const totalGridSquares = gridSize * gridSize;
   const targetTreeSquares = Math.floor(totalGridSquares * 0.3); // 30% of total squares
   let treesPlaced = 0;
@@ -131,7 +131,7 @@ const placeLargeTreeClusters = (grid, treeMaterial) => {
   }
 
   // Fill in with smaller clumps
-  console.log("Filling in with smaller clumps...");
+  window.UtilsModule.debug("Filling in with smaller clumps...");
   while (treesPlaced < targetTreeSquares) {
     let x = Math.floor(Math.random() * gridSize);
     let y = Math.floor(Math.random() * gridSize);
@@ -154,7 +154,7 @@ const placeLargeTreeClusters = (grid, treeMaterial) => {
     }
   }
 
-  console.log(`Total tree squares placed: ${treesPlaced}`);
+  window.UtilsModule.debug(`Total tree squares placed: ${treesPlaced}`);
   return grid;
 };
 
@@ -162,4 +162,3 @@ window.TreePlacementModule = {
   placeLargeTreeClusters,
 };
 
-console.log("TreePlacementModule loaded");

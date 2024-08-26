@@ -97,7 +97,7 @@ const createMaterials = () => {
     tree: createMaterialFromEmoji("🌲", "tree"),
     food: createMaterialFromEmoji("🍎", "food"),
   };
-  window.UtilsModule.debug("Materials created", Object.keys(materials));
+//   window.UtilsModule.debug("Materials created", Object.keys(materials));
   return materials;
 };
 

@@ -82,5 +82,3 @@ window.SceneModule = {
   setupWindowResize,
   createAnimationLoop,
 };
-
-console.log("SceneModule loaded");

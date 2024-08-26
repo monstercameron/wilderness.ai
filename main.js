@@ -24,7 +24,7 @@ const initGame = () => {
   window.UtilsModule.debug("Camera created");
 
   const materials = window.MaterialsModule.createMaterials();
-  window.UtilsModule.debug("Materials created", materials);
+//   window.UtilsModule.debug("Materials created", materials);
 
   const grid = window.GridModule.createGrid(scene, materials);
   window.UtilsModule.debug("Initial grid created", { gridSize: grid.length });
@@ -249,7 +249,7 @@ const setupEventListeners = (moveGazelleCallback) => {
  */
 const renderGame = (gameState) => {
   // Implement rendering logic here
-  window.UtilsModule.debug("Rendering game state:", gameState);
+//   window.UtilsModule.debug("Rendering game state:", gameState);
 };
 
 /**

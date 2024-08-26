@@ -125,7 +125,7 @@ const placeFood = (grid, x, y, gridSize, squareSize, foodMaterial, scene) => {
   const foodMesh = createFoodMesh(x, y, gridSize, squareSize, foodMaterial);
   const textMesh = createTextMesh(x, y, gridSize, squareSize, foodAmount);
 
-  window.UtilsModule.debug(`Food placed at (${x}, ${y}) with amount ${foodAmount}`);
+//   window.UtilsModule.debug(`Food placed at (${x}, ${y}) with amount ${foodAmount}`);
 
   return {
     grid: updatedGrid,
@@ -150,7 +150,7 @@ const placeFoodItems = (grid, gridSize, squareSize, materials, scene) => {
   let updatedGrid = grid;
   let newMeshes = [];
 
-  window.UtilsModule.debug(`Placing food items. Max food squares: ${maxFoodSquares}`);
+//   window.UtilsModule.debug(`Placing food items. Max food squares: ${maxFoodSquares}`);
 
   // Place food near trees
   for (let i = 0; i < gridSize; i++) {
@@ -181,7 +181,7 @@ const placeFoodItems = (grid, gridSize, squareSize, materials, scene) => {
     if (foodPlaced >= maxFoodSquares) break;
   }
 
-  window.UtilsModule.debug(`Food placed near trees: ${foodPlaced}`);
+//   window.UtilsModule.debug(`Food placed near trees: ${foodPlaced}`);
 
   // Create food clusters
   for (let c = 0; c < NUM_CLUSTERS && foodPlaced < maxFoodSquares; c++) {
@@ -191,7 +191,7 @@ const placeFoodItems = (grid, gridSize, squareSize, materials, scene) => {
       Math.floor(Math.random() * (MAX_CLUSTER_SIZE - MIN_CLUSTER_SIZE + 1)) +
       MIN_CLUSTER_SIZE;
 
-    window.UtilsModule.debug(`Creating food cluster ${c + 1} at (${x}, ${y}) with size ${clusterSize}`);
+    // window.UtilsModule.debug(`Creating food cluster ${c + 1} at (${x}, ${y}) with size ${clusterSize}`);
 
     for (let f = 0; f < clusterSize && foodPlaced < maxFoodSquares; f++) {
       const {
@@ -220,7 +220,7 @@ const placeFoodItems = (grid, gridSize, squareSize, materials, scene) => {
     }
   }
 
-  window.UtilsModule.debug(`Total food squares placed: ${foodPlaced}`);
+//   window.UtilsModule.debug(`Total food squares placed: ${foodPlaced}`);
   return { updatedGrid, newMeshes };
 };
 
