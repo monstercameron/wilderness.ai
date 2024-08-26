@@ -1,47 +1,60 @@
 // materials.js
-function createTextureFromEmoji(emoji) {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    canvas.width = 64;
-    canvas.height = 64;
-    context.fillStyle = 'rgba(255, 255, 255, 0)';  // Transparent background
-    context.fillRect(0, 0, 64, 64);
-    context.font = '50px Arial';
-    context.fillStyle = 'black';
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.fillText(emoji, 32, 32);
-    return new THREE.CanvasTexture(canvas);
-}
 
-function createMaterials() {
-    const wheatTexture = createTextureFromEmoji('🌾');
-    const treeTexture = createTextureFromEmoji('🌲');
-    const foodTexture = createTextureFromEmoji('🍎');
+const CANVAS_SIZE = 64;
+const FONT_SIZE = 50;
 
-    const wheatMaterial = new THREE.MeshBasicMaterial({ 
-        map: wheatTexture, 
-        transparent: true 
-    });
-    wheatMaterial.name = 'wheat';
+const createCanvas = (width, height) => {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
+};
 
-    const treeMaterial = new THREE.MeshBasicMaterial({ 
-        map: treeTexture, 
-        transparent: true 
-    });
-    treeMaterial.name = 'tree';
+const setupContext = (context, width, height) => {
+  context.fillStyle = "rgba(255, 255, 255, 0)"; // Transparent background
+  context.fillRect(0, 0, width, height);
+  context.font = `${FONT_SIZE}px Arial`;
+  context.fillStyle = "black";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  return context;
+};
 
-    const foodMaterial = new THREE.MeshBasicMaterial({ 
-        map: foodTexture, 
-        transparent: true 
-    });
-    foodMaterial.name = 'food';
+const createTextureFromEmoji = (emoji) => {
+  const canvas = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
+  const context = setupContext(
+    canvas.getContext("2d"),
+    CANVAS_SIZE,
+    CANVAS_SIZE
+  );
+  context.fillText(emoji, CANVAS_SIZE / 2, CANVAS_SIZE / 2);
+  return new THREE.CanvasTexture(canvas);
+};
 
-    return {
-        wheat: wheatMaterial,
-        tree: treeMaterial,
-        food: foodMaterial
-    };
-}
+const createMaterial = (texture, name) => {
+  const material = new THREE.MeshBasicMaterial({
+    map: texture,
+    transparent: true,
+  });
+  material.name = name;
+  return material;
+};
 
-window.createMaterials = createMaterials;
+const createMaterialFromEmoji = (emoji, name) => {
+  const texture = createTextureFromEmoji(emoji);
+  return createMaterial(texture, name);
+};
+
+const createMaterials = () => {
+  return {
+    wheat: createMaterialFromEmoji("🌾", "wheat"),
+    tree: createMaterialFromEmoji("🌲", "tree"),
+    food: createMaterialFromEmoji("🍎", "food"),
+  };
+};
+
+// Expose functions to the global scope
+window.MaterialsModule = {
+  createMaterials,
+  createTextureFromEmoji, // Exposed for potential reuse
+};

@@ -1,86 +1,131 @@
 // camera.js
-let camera;
+const INITIAL_ZOOM = 75;
+const MIN_ZOOM = 5;
+const MAX_ZOOM = 100;
+const PAN_SPEED = 0.1;
+const ZOOM_SPEED = 0.1;
 
-function setupCamera() {
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 75;  // Initial zoom level
-}
+const createCamera = (aspectRatio) => {
+  const camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 1000);
+  camera.position.z = INITIAL_ZOOM;
+  return camera;
+};
 
-function setupCameraControls() {
-    const minZoom = 5;
-    const maxZoom = 100;
-    const panLimit = gridSize / 2;
-    const PAN_SPEED = 0.1; // Tunable constant for pan speed
-    let isDragging = false;
-    let previousMousePosition = { x: 0, y: 0 };
+const createCameraState = (gridSize) => ({
+  isDragging: false,
+  previousMousePosition: { x: 0, y: 0 },
+  panLimit: gridSize / 2,
+});
 
-    const sceneElement = document.getElementById('scene');
+const debugOutput = (message) => {
+  console.log(`[DEBUG] ${message}`);
+};
 
-    function debugOutput(message) {
-        console.log(`[DEBUG] ${message}`);
+const updateCameraPosition = (camera, deltaX, deltaY, zoomFactor, panLimit) => {
+  const newX = Math.max(
+    -panLimit,
+    Math.min(panLimit, camera.position.x - deltaX * PAN_SPEED * zoomFactor)
+  );
+  const newY = Math.max(
+    -panLimit,
+    Math.min(panLimit, camera.position.y + deltaY * PAN_SPEED * zoomFactor)
+  );
+
+  debugOutput(
+    `Camera position before: (${camera.position.x}, ${camera.position.y}, ${camera.position.z})`
+  );
+  camera.position.x = newX;
+  camera.position.y = newY;
+  debugOutput(
+    `Camera position after: (${camera.position.x}, ${camera.position.y}, ${camera.position.z})`
+  );
+
+  return camera;
+};
+
+const updateCameraZoom = (camera, zoomDelta) => {
+  const newZoom = Math.max(
+    MIN_ZOOM,
+    Math.min(MAX_ZOOM, camera.position.z + zoomDelta)
+  );
+  debugOutput(`Camera zoom before: ${camera.position.z}`);
+  camera.position.z = newZoom;
+  debugOutput(`Camera zoom after: ${camera.position.z}`);
+  return camera;
+};
+
+const createCameraControls = (camera, cameraState, sceneElement) => {
+  const handleMouseDown = (e) => {
+    cameraState.isDragging = true;
+    sceneElement.style.cursor = "grabbing";
+    cameraState.previousMousePosition = { x: e.clientX, y: e.clientY };
+    debugOutput(`Mouse down at (${e.clientX}, ${e.clientY})`);
+  };
+
+  const handleMouseMove = (e) => {
+    if (cameraState.isDragging) {
+      const deltaMove = {
+        x: e.clientX - cameraState.previousMousePosition.x,
+        y: e.clientY - cameraState.previousMousePosition.y,
+      };
+      const zoomFactor = camera.position.z / INITIAL_ZOOM;
+
+      debugOutput(
+        `Mouse move: delta (${deltaMove.x}, ${deltaMove.y}), zoom factor: ${zoomFactor}`
+      );
+
+      updateCameraPosition(
+        camera,
+        deltaMove.x,
+        deltaMove.y,
+        zoomFactor,
+        cameraState.panLimit
+      );
+
+      cameraState.previousMousePosition = { x: e.clientX, y: e.clientY };
     }
+  };
 
-    const handleMouseDown = (e) => {
-        isDragging = true;
-        sceneElement.style.cursor = 'grabbing';
-        previousMousePosition = { x: e.clientX, y: e.clientY };
-        debugOutput(`Mouse down at (${e.clientX}, ${e.clientY})`);
-    };
+  const handleMouseUp = () => {
+    cameraState.isDragging = false;
+    sceneElement.style.cursor = "grab";
+    debugOutput("Mouse up");
+  };
 
-    const handleMouseMove = (e) => {
-        if (isDragging) {
-            const deltaMove = {
-                x: e.clientX - previousMousePosition.x,
-                y: e.clientY - previousMousePosition.y
-            };
-            const zoomFactor = camera.position.z / 75;
-            
-            // Invert the direction of movement and apply PAN_SPEED
-            const newX = Math.max(-panLimit, Math.min(panLimit, camera.position.x - deltaMove.x * PAN_SPEED * zoomFactor));
-            const newY = Math.max(-panLimit, Math.min(panLimit, camera.position.y + deltaMove.y * PAN_SPEED * zoomFactor));
-            
-            debugOutput(`Mouse move: delta (${deltaMove.x}, ${deltaMove.y}), zoom factor: ${zoomFactor}`);
-            debugOutput(`Camera position before: (${camera.position.x}, ${camera.position.y}, ${camera.position.z})`);
-            
-            camera.position.x = newX;
-            camera.position.y = newY;
-            
-            debugOutput(`Camera position after: (${camera.position.x}, ${camera.position.y}, ${camera.position.z})`);
-            
-            previousMousePosition = { x: e.clientX, y: e.clientY };
-        }
-    };
+  const handleMouseLeave = () => {
+    cameraState.isDragging = false;
+    sceneElement.style.cursor = "default";
+    debugOutput("Mouse leave");
+  };
 
-    const handleMouseUp = () => {
-        isDragging = false;
-        sceneElement.style.cursor = 'grab';
-        debugOutput('Mouse up');
-    };
+  const handleWheel = (event) => {
+    const zoomDelta = event.deltaY * ZOOM_SPEED;
+    debugOutput(`Wheel event: delta ${event.deltaY}, zoom delta ${zoomDelta}`);
+    updateCameraZoom(camera, zoomDelta);
+  };
 
-    const handleMouseLeave = () => {
-        isDragging = false;
-        sceneElement.style.cursor = 'default';
-        debugOutput('Mouse leave');
-    };
+  sceneElement.addEventListener("mousedown", handleMouseDown);
+  sceneElement.addEventListener("mousemove", handleMouseMove);
+  sceneElement.addEventListener("mouseup", handleMouseUp);
+  sceneElement.addEventListener("mouseleave", handleMouseLeave);
+  sceneElement.addEventListener("wheel", handleWheel);
 
-    const handleWheel = (event) => {
-        const zoomSpeed = 0.1;
-        const zoomDelta = event.deltaY * zoomSpeed;
-        const newZoom = Math.max(minZoom, Math.min(maxZoom, camera.position.z + zoomDelta));
-        debugOutput(`Wheel event: delta ${event.deltaY}, zoom delta ${zoomDelta}`);
-        debugOutput(`Camera zoom before: ${camera.position.z}`);
-        camera.position.z = newZoom;
-        debugOutput(`Camera zoom after: ${camera.position.z}`);
-    };
+  sceneElement.style.cursor = "grab";
 
-    sceneElement.addEventListener('mousedown', handleMouseDown);
-    sceneElement.addEventListener('mousemove', handleMouseMove);
-    sceneElement.addEventListener('mouseup', handleMouseUp);
-    sceneElement.addEventListener('mouseleave', handleMouseLeave);
-    sceneElement.addEventListener('wheel', handleWheel);
+  return {
+    dispose: () => {
+      sceneElement.removeEventListener("mousedown", handleMouseDown);
+      sceneElement.removeEventListener("mousemove", handleMouseMove);
+      sceneElement.removeEventListener("mouseup", handleMouseUp);
+      sceneElement.removeEventListener("mouseleave", handleMouseLeave);
+      sceneElement.removeEventListener("wheel", handleWheel);
+    },
+  };
+};
 
-    sceneElement.style.cursor = 'grab';
-}
-
-window.setupCamera = setupCamera;
-window.setupCameraControls = setupCameraControls
+// Expose functions to the global scope
+window.CameraModule = {
+  createCamera,
+  createCameraState,
+  createCameraControls,
+};
