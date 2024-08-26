@@ -104,16 +104,24 @@ const createCameraControls = (camera, cameraState, sceneElement) => {
     updateCameraZoom(camera, zoomDelta);
   };
 
-  sceneElement.addEventListener("mousedown", handleMouseDown);
-  sceneElement.addEventListener("mousemove", handleMouseMove);
-  sceneElement.addEventListener("mouseup", handleMouseUp);
-  sceneElement.addEventListener("mouseleave", handleMouseLeave);
-  sceneElement.addEventListener("wheel", handleWheel);
+  // Add console.log statements to check if the functions are being called
+  const addEventListeners = () => {
+    console.log("Adding event listeners");
+    sceneElement.addEventListener("mousedown", handleMouseDown);
+    sceneElement.addEventListener("mousemove", handleMouseMove);
+    sceneElement.addEventListener("mouseup", handleMouseUp);
+    sceneElement.addEventListener("mouseleave", handleMouseLeave);
+    sceneElement.addEventListener("wheel", handleWheel);
+  };
+
+  // Call the function to add event listeners
+  addEventListeners();
 
   sceneElement.style.cursor = "grab";
 
   return {
     dispose: () => {
+      console.log("Removing event listeners");
       sceneElement.removeEventListener("mousedown", handleMouseDown);
       sceneElement.removeEventListener("mousemove", handleMouseMove);
       sceneElement.removeEventListener("mouseup", handleMouseUp);
@@ -129,3 +137,6 @@ window.CameraModule = {
   createCameraState,
   createCameraControls,
 };
+
+// Add a check to ensure the module is loaded
+console.log("CameraModule loaded:", window.CameraModule);

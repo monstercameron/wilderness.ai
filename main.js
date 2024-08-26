@@ -11,81 +11,135 @@ let gameState = {
 };
 
 function initGame() {
-  // Initialize scene
-  const { scene, renderer } = window.SceneModule.initScene();
-  gameState.scene = scene;
-  gameState.renderer = renderer;
+  console.log("Initializing game...");
 
-  // Setup camera
-  gameState.camera = window.CameraModule.createCamera(
-    window.innerWidth / window.innerHeight
-  );
-  const cleanupResize = window.SceneModule.setupWindowResize(
-    gameState.camera,
-    gameState.renderer
-  );
-  gameState.cleanupFunctions.push(cleanupResize);
+  try {
+    // Initialize scene
+    console.log("Initializing scene...");
+    const { scene, renderer } = window.SceneModule.initScene();
+    gameState.scene = scene;
+    gameState.renderer = renderer;
+    console.log("Scene initialized.");
 
-  // Create materials
-  gameState.materials = window.MaterialsModule.createMaterials();
+    // Setup camera
+    console.log("Setting up camera...");
+    gameState.camera = window.CameraModule.createCamera(
+      window.innerWidth / window.innerHeight
+    );
+    const cleanupResize = window.SceneModule.setupWindowResize(
+      gameState.camera,
+      gameState.renderer
+    );
+    gameState.cleanupFunctions.push(cleanupResize);
+    console.log("Camera set up.");
 
-  // Create grid
-  const gridSize = window.UtilsModule.GRID_SIZE;
-  const squareSize = window.UtilsModule.SQUARE_SIZE;
-  gameState.grid = window.GridModule.createGrid(
-    gameState.scene,
-    gameState.materials
-  );
+    // Setup camera controls
+    console.log("Setting up camera controls...");
+    const sceneElement = document.getElementById("scene");
+    const cameraState = window.CameraModule.createCameraState(
+      UtilsModule.GRID_SIZE
+    );
+    const cameraControls = window.CameraModule.createCameraControls(
+      gameState.camera,
+      cameraState,
+      sceneElement
+    );
+    gameState.cleanupFunctions.push(cameraControls.dispose);
+    console.log("Camera controls set up.");
 
-  // Place trees
-  gameState.grid = window.TreePlacementModule.placeLargeTreeClusters(
-    gameState.grid,
-    gameState.materials.tree
-  );
+    // Create materials
+    console.log("Creating materials...");
+    gameState.materials = window.MaterialsModule.createMaterials();
+    console.log("Materials created:", gameState.materials);
 
-  // Place food
-  const { updatedGrid, newMeshes } = window.FoodPlacementModule.placeFoodItems(
-    gameState.grid,
-    gridSize,
-    squareSize,
-    gameState.materials,
-    gameState.scene
-  );
-  gameState.grid = updatedGrid;
-  newMeshes.forEach((mesh) => gameState.scene.add(mesh));
+    // Create grid
+    console.log("Creating grid...");
+    gameState.grid = window.GridModule.createGrid(
+      gameState.scene,
+      gameState.materials
+    );
+    console.log("Grid created. Sample cell:", gameState.grid[0][0]);
 
-  // Place gazelle
-  gameState.gazelle = window.GazelleSimulation.placeGazelle(
-    gameState.grid,
-    gridSize,
-    squareSize,
-    gameState.scene
-  );
+    // Place trees
+    console.log("Placing trees...");
+    console.log("Tree material:", gameState.materials.tree);
+    gameState.grid = window.TreePlacementModule.placeLargeTreeClusters(
+      gameState.grid,
+      gameState.materials.tree
+    );
+    console.log(
+      "Trees placed. Sample cell after placement:",
+      gameState.grid[0][0]
+    );
 
-  // Start animation loop
-  const animate = window.SceneModule.createAnimationLoop(
-    gameState.renderer,
-    gameState.scene,
-    gameState.camera
-  );
-  animate();
+    // Place food
+    console.log("Placing food...");
+    const { updatedGrid, newMeshes } =
+      window.FoodPlacementModule.placeFoodItems(
+        gameState.grid,
+        UtilsModule.GRID_SIZE,
+        UtilsModule.SQUARE_SIZE,
+        gameState.materials,
+        gameState.scene
+      );
+    gameState.grid = updatedGrid;
+    newMeshes.forEach((mesh) => gameState.scene.add(mesh));
+    console.log(
+      "Food placed. Sample cell after food placement:",
+      gameState.grid[0][0]
+    );
 
-  // Set up event listeners
-  setupEventListeners();
+    // Place gazelle
+    console.log("Placing gazelle...");
+    gameState.gazelle = window.GazelleSimulation.placeGazelle(
+      gameState.grid,
+      UtilsModule.GRID_SIZE,
+      UtilsModule.SQUARE_SIZE,
+      gameState.scene
+    );
+    console.log("Gazelle placed:", gameState.gazelle);
 
-  console.log("Game initialization complete");
+    // Start animation loop
+    console.log("Starting animation loop...");
+    const animate = window.SceneModule.createAnimationLoop(
+      gameState.renderer,
+      gameState.scene,
+      gameState.camera
+    );
+    animate();
+    console.log("Animation loop started.");
+
+    // Set up event listeners
+    console.log("Setting up event listeners...");
+    setupEventListeners();
+    console.log("Event listeners set up.");
+
+    console.log("Game initialization complete");
+  } catch (error) {
+    console.error("Error during game initialization:", error);
+    console.error("Error stack:", error.stack);
+  }
 }
 
 function moveGazelle(direction) {
   if (gameState.gazelle) {
+    console.log(`Attempting to move gazelle in direction: ${direction}`);
     const newState = window.GazelleSimulation.move(
       gameState.gazelle,
       direction
     );
     if (newState !== gameState.gazelle) {
       gameState.gazelle = newState;
-      gameState.grid = newState.grid; // Assuming the grid is updated in the move function
+      gameState.grid = newState.grid;
+      console.log(`Gazelle moved to:`, gameState.gazelle.position);
+      console.log(`Updated grid state:`, gameState.grid);
+    } else {
+      console.log(
+        `Gazelle movement in direction ${direction} was not possible`
+      );
     }
+  } else {
+    console.warn("Gazelle not initialized");
   }
 }
 
@@ -112,27 +166,35 @@ function setupEventListeners() {
 // Function to trigger API-based movement
 function triggerGazelleAIMove() {
   if (gameState.gazelle) {
+    console.log("Triggering AI move for gazelle");
     const surroundings = window.GazelleSimulation.getSurroundingGrid(
       gameState.gazelle
     );
     const stringRepr = window.GazelleSimulation.gridToString(surroundings);
+    console.log("Surrounding grid:", stringRepr);
+
     // Here you would typically make an API call with the stringRepr
     // For now, we'll just move in a random direction
     const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
     const randomDirection =
       directions[Math.floor(Math.random() * directions.length)];
+    console.log(`AI chose random direction: ${randomDirection}`);
     moveGazelle(randomDirection);
+  } else {
+    console.warn("Cannot trigger AI move: Gazelle not initialized");
   }
 }
 
 // Cleanup function to be called when the game needs to be reset or closed
 function cleanupGame() {
+  console.log("Cleaning up game...");
   gameState.cleanupFunctions.forEach((cleanup) => cleanup());
   // Remove event listeners
   document.removeEventListener("keydown", setupEventListeners);
   // Stop the AI movement interval
   clearInterval(window.aiMoveInterval);
   // Additional cleanup logic can be added here
+  console.log("Game cleanup complete");
 }
 
 // Expose necessary functions to the global scope
@@ -143,4 +205,4 @@ window.GameModule = {
   cleanupGame,
 };
 
-// The automatic game start and interval setting are moved to the HTML file
+console.log("Main game module loaded.");

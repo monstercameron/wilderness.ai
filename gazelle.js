@@ -206,7 +206,7 @@ const getSurroundingGrid = (state) => {
 const gridToString = (grid) =>
   grid.map((row) => row.join("")).join("\n") + "\n";
 
-const placeGazelle = (grid, scene) => {
+const placeGazelle = (grid) => {
   let x, y;
   do {
     x = Math.floor(Math.random() * GRID_SIZE);
@@ -217,17 +217,16 @@ const placeGazelle = (grid, scene) => {
   const initialDirection =
     directions[Math.floor(Math.random() * directions.length)];
 
-  const mesh = createMesh(x, y, direction, window.UtilsModule.SQUARE_SIZE);
+  const mesh = createMesh(x, y, initialDirection, window.UtilsModule.SQUARE_SIZE);
   updateMeshPosition(mesh, x, y, window.UtilsModule.GRID_SIZE);
-  scene.add(mesh);
-  scene.add(speechBubble);
+
+  const speechBubble = createSpeechBubble(x, y, window.UtilsModule.GRID_SIZE);
 
   return {
     x,
     y,
     direction: initialDirection,
     grid,
-    scene,
     mesh,
     speechBubble,
     thoughts: "Just grazing...",

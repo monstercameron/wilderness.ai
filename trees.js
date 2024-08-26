@@ -9,7 +9,11 @@ const SMALL_CLUMP_MAX = 59;
 const INDIVIDUAL_TREE_CHANCE = 0.01;
 
 const placeTree = (grid, x, y, treeMaterial) => {
-  if (!window.UtilsModule.isValidPosition(x, y, grid.length) || grid[x][y].hasTree) return false;
+  if (
+    !window.UtilsModule.isValidPosition(x, y, grid.length) ||
+    grid[x][y].hasTree
+  )
+    return false;
   return {
     ...grid,
     [x]: {
@@ -57,78 +61,105 @@ const createClump = (grid, startX, startY, size, gridSize, treeMaterial) => {
 };
 
 const placeLargeTreeClusters = (grid, treeMaterial) => {
-  const gridSize = grid.length;
+  console.log("Starting tree placement...");
+  const gridSize = UtilsModule.GRID_SIZE;
   const totalGridSquares = gridSize * gridSize;
-  const targetTreeSquares = Math.floor(totalGridSquares * TREE_COVERAGE);
+  const targetTreeSquares = Math.floor(totalGridSquares * 0.3); // 30% of total squares
   let treesPlaced = 0;
-  let updatedGrid = grid;
+
+  const placeTree = (x, y) => {
+    if (!UtilsModule.isValidPosition(x, y, gridSize) || grid[x][y].hasTree) {
+      console.log(
+        `Cannot place tree at (${x}, ${y}): Invalid position or tree already exists`
+      );
+      return false;
+    }
+    console.log(`Placing tree at (${x}, ${y})`);
+    grid[x][y].mesh.material = treeMaterial;
+    grid[x][y].hasTree = true;
+    treesPlaced++;
+    return true;
+  };
+
+  const createLargeClump = (startX, startY, size) => {
+    console.log(
+      `Creating large clump starting at (${startX}, ${startY}) with size ${size}`
+    );
+    let queue = [{ x: startX, y: startY }];
+    let placed = 0;
+
+    while (queue.length > 0 && placed < size) {
+      let { x, y } = queue.shift();
+      if (placeTree(x, y)) {
+        placed++;
+        // Add adjacent squares to the queue
+        [
+          [0, 1],
+          [1, 0],
+          [0, -1],
+          [-1, 0],
+        ].forEach(([dx, dy]) => {
+          let nx = x + dx,
+            ny = y + dy;
+          if (UtilsModule.isValidPosition(nx, ny, gridSize)) {
+            queue.push({ x: nx, y: ny });
+          }
+        });
+        // Shuffle the queue to create more organic shapes
+        queue.sort(() => Math.random() - 0.5);
+      }
+    }
+    console.log(`Large clump created. Placed ${placed} trees.`);
+  };
 
   // Place large clumps
-  for (
-    let c = 0;
-    c < NUM_LARGE_CLUMPS && treesPlaced < targetTreeSquares;
-    c++
-  ) {
-    const x = Math.floor(Math.random() * gridSize);
-    const y = Math.floor(Math.random() * gridSize);
-    const clumpSize =
-      Math.floor(Math.random() * (MAX_CLUMP_SIZE - MIN_CLUMP_SIZE + 1)) +
-      MIN_CLUMP_SIZE;
-    const { updatedGrid: newGrid, treesPlaced: newTreesPlaced } = createClump(
-      updatedGrid,
-      x,
-      y,
-      clumpSize,
-      gridSize,
-      treeMaterial
+  const numLargeClumps = 5;
+  const minClumpSize = 100;
+  const maxClumpSize = 300;
+
+  console.log(`Placing ${numLargeClumps} large clumps...`);
+  for (let c = 0; c < numLargeClumps && treesPlaced < targetTreeSquares; c++) {
+    let x = Math.floor(Math.random() * gridSize);
+    let y = Math.floor(Math.random() * gridSize);
+    let clumpSize =
+      Math.floor(Math.random() * (maxClumpSize - minClumpSize + 1)) +
+      minClumpSize;
+    console.log(
+      `Creating large clump ${c + 1} at (${x}, ${y}) with size ${clumpSize}`
     );
-    updatedGrid = newGrid;
-    treesPlaced += newTreesPlaced;
+    createLargeClump(x, y, clumpSize);
   }
 
   // Fill in with smaller clumps
+  console.log("Filling in with smaller clumps...");
   while (treesPlaced < targetTreeSquares) {
-    const x = Math.floor(Math.random() * gridSize);
-    const y = Math.floor(Math.random() * gridSize);
-    const clumpSize =
-      Math.floor(Math.random() * (SMALL_CLUMP_MAX - SMALL_CLUMP_MIN + 1)) +
-      SMALL_CLUMP_MIN;
-    const { updatedGrid: newGrid, treesPlaced: newTreesPlaced } = createClump(
-      updatedGrid,
-      x,
-      y,
-      clumpSize,
-      gridSize,
-      treeMaterial
-    );
-    updatedGrid = newGrid;
-    treesPlaced += newTreesPlaced;
+    let x = Math.floor(Math.random() * gridSize);
+    let y = Math.floor(Math.random() * gridSize);
+    let clumpSize = Math.floor(Math.random() * 50) + 10; // 10 to 59 trees
+    console.log(`Creating small clump at (${x}, ${y}) with size ${clumpSize}`);
+    createLargeClump(x, y, clumpSize);
   }
 
-  // Add some individual trees
-  updatedGrid = grid.map((row, i) =>
-    row.map((cell, j) => {
+  // Add some individual trees (1% chance per remaining empty square)
+  console.log("Adding individual trees...");
+  for (let i = 0; i < gridSize; i++) {
+    for (let j = 0; j < gridSize; j++) {
       if (
-        !cell.hasTree &&
-        Math.random() < INDIVIDUAL_TREE_CHANCE &&
+        !grid[i][j].hasTree &&
+        Math.random() < 0.01 &&
         treesPlaced < targetTreeSquares
       ) {
-        treesPlaced++;
-        return {
-          ...cell,
-          hasTree: true,
-          mesh: { ...cell.mesh, material: treeMaterial },
-        };
+        placeTree(i, j);
       }
-      return cell;
-    })
-  );
+    }
+  }
 
   console.log(`Total tree squares placed: ${treesPlaced}`);
-  return updatedGrid;
+  return grid;
 };
 
-// Expose functions to the global scope
 window.TreePlacementModule = {
   placeLargeTreeClusters,
 };
+
+console.log("TreePlacementModule loaded");
