@@ -1,84 +1,110 @@
-// scene.js
+const createRenderer = (container) => {
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: false,
+    powerPreference: "high-performance",
+  });
 
-/**
- * Creates a WebGL renderer with the specified dimensions
- * @param {number} width - The width of the renderer
- * @param {number} height - The height of the renderer
- * @returns {THREE.WebGLRenderer} The created renderer
- */
-const createRenderer = (width, height) => {
-  const renderer = new THREE.WebGLRenderer();
-  renderer.setSize(width, height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setClearColor(0x0b1511, 1);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.18;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.domElement.style.display = "block";
+  renderer.domElement.setAttribute("aria-hidden", "true");
+  container.appendChild(renderer.domElement);
   return renderer;
 };
 
-/**
- * Appends the renderer's DOM element to a specified element in the document
- * @param {THREE.WebGLRenderer} renderer - The renderer to append
- * @param {string} elementId - The ID of the element to append the renderer to
- */
-const appendRendererToElement = (renderer, elementId) => {
-  const element = document.getElementById(elementId);
-  if (element) {
-    element.appendChild(renderer.domElement);
-  } else {
-    console.error(`Element with id '${elementId}' not found`);
-  }
+const addLighting = (scene) => {
+  const hemisphere = new THREE.HemisphereLight(0xc8d9c2, 0x263322, 1.15);
+  scene.add(hemisphere);
+
+  const sun = new THREE.DirectionalLight(0xffefd2, 2.1);
+  sun.position.set(-28, -38, 55);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.left = -45;
+  sun.shadow.camera.right = 45;
+  sun.shadow.camera.top = 45;
+  sun.shadow.camera.bottom = -45;
+  sun.shadow.camera.near = 8;
+  sun.shadow.camera.far = 120;
+  sun.shadow.bias = -0.00035;
+  scene.add(sun);
+  scene.add(sun.target);
+
+  const rim = new THREE.DirectionalLight(0x6d9c83, 0.45);
+  rim.position.set(35, 28, 18);
+  scene.add(rim);
+
+  return { sun, hemisphere, rim };
 };
 
-/**
- * Initializes the scene and renderer
- * @returns {{scene: THREE.Scene, renderer: THREE.WebGLRenderer}} The initialized scene and renderer
- */
-const initScene = () => {
+const updateLighting = (lights, focus) => {
+  lights.sun.position.set(focus.x - 28, focus.y - 38, 55);
+  lights.sun.target.position.set(focus.x, focus.y, 0);
+  lights.sun.target.updateMatrixWorld();
+};
+
+const initScene = (containerId = "scene") => {
+  const container = document.getElementById(containerId);
+  if (!container) throw new Error(`Missing #${containerId} container`);
+
   const scene = new THREE.Scene();
-  const renderer = createRenderer(window.innerWidth, window.innerHeight);
-  appendRendererToElement(renderer, "scene");
-  return { scene, renderer };
+  scene.background = new THREE.Color(0x0d1913);
+  scene.fog = new THREE.FogExp2(0x101d16, 0.012);
+
+  const renderer = createRenderer(container);
+  const lights = addLighting(scene);
+  return { scene, renderer, container, lights };
 };
 
-/**
- * Creates a resize handler function for the camera and renderer
- * @param {THREE.Camera} camera - The camera to update on resize
- * @param {THREE.WebGLRenderer} renderer - The renderer to resize
- * @returns {Function} The resize handler function
- */
-const createResizeHandler = (camera, renderer) => () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-};
-
-/**
- * Sets up the window resize event listener
- * @param {THREE.Camera} camera - The camera to update on resize
- * @param {THREE.WebGLRenderer} renderer - The renderer to resize
- * @returns {Function} A function to remove the event listener
- */
-const setupWindowResize = (camera, renderer) => {
-  const handleResize = createResizeHandler(camera, renderer);
-  window.addEventListener("resize", handleResize);
-  return () => window.removeEventListener("resize", handleResize);
-};
-
-/**
- * Creates an animation loop function
- * @param {THREE.WebGLRenderer} renderer - The renderer to use
- * @param {THREE.Scene} scene - The scene to render
- * @param {THREE.Camera} camera - The camera to use for rendering
- * @returns {Function} The animation loop function
- */
-const createAnimationLoop = (renderer, scene, camera) => {
-  const animate = () => {
-    requestAnimationFrame(animate);
-    renderer.render(scene, camera);
+const setupWindowResize = (camera, renderer, container) => {
+  const resize = () => {
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    camera.aspect = width / Math.max(height, 1);
+    camera.updateProjectionMatrix();
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(width, height, false);
   };
-  return animate;
+
+  window.addEventListener("resize", resize);
+  resize();
+  return () => window.removeEventListener("resize", resize);
 };
 
-// Expose functions to the global scope
-window.SceneModule = {
-  initScene,
-  setupWindowResize,
-  createAnimationLoop,
+const createAnimationLoop = (onFrame) => {
+  let animationFrameId = null;
+  let previousTimestamp = performance.now();
+
+  const animate = (timestamp) => {
+    const deltaSeconds = Math.min((timestamp - previousTimestamp) / 1000, 0.1);
+    previousTimestamp = timestamp;
+
+    if (onFrame(timestamp, deltaSeconds) === false) {
+      animationFrameId = null;
+      return;
+    }
+    animationFrameId = requestAnimationFrame(animate);
+  };
+
+  return {
+    start() {
+      if (animationFrameId !== null) return;
+      previousTimestamp = performance.now();
+      animationFrameId = requestAnimationFrame(animate);
+    },
+    stop() {
+      if (animationFrameId === null) return;
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    },
+  };
 };
+
+window.SceneModule = { initScene, setupWindowResize, createAnimationLoop, updateLighting };

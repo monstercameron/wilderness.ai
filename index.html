@@ -1,42 +1,244 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Emoji Grid Game</title>
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-      }
-      #scene {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-      }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Observe an autonomous elk perceive, plan, and survive in a procedural wilderness with predators, needs, vision, and route tracing."
+    />
+    <meta name="theme-color" content="#0b1710" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Wilderness.ai — Living Agent Observatory" />
+    <meta property="og:description" content="Observe an autonomous elk perceive, plan, and survive in a procedural wilderness." />
+    <meta property="og:url" content="https://monstercameron.github.io/wilderness.ai/" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Wilderness.ai — Living Agent Observatory" />
+    <meta name="twitter:description" content="An observable autonomous-creature simulation built with Three.js." />
+    <link rel="canonical" href="https://monstercameron.github.io/wilderness.ai/" />
+    <title>Wilderness.ai — Living Agent Observatory</title>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div id="scene"></div>
+    <main id="app">
+      <div
+        id="scene"
+        role="application"
+        aria-label="Interactive wilderness simulation. Drag to pan, scroll to zoom, and use arrow keys to guide the elk."
+      ></div>
 
-    <!-- Third-party libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div>
+            <p class="eyebrow">LIVING AGENT OBSERVATORY</p>
+            <h1>Wilderness<span>.ai</span></h1>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="system-chip camera-control" id="center-camera-button" type="button" title="Center camera on Nia (C)">CENTER NIA</button>
+          <button class="system-chip camera-control" id="lock-camera-button" type="button" aria-pressed="false" title="Toggle camera follow (L)">FOLLOW OFF</button>
+          <button class="system-chip auto-hide" id="auto-hide-button" type="button" aria-pressed="true" title="Hide the HUD after five seconds without pointer movement">AUTOHIDE ON</button>
+          <button class="system-chip" id="pause-button" type="button" aria-pressed="false">PAUSE</button>
+          <button class="system-chip assist" id="assist-button" type="button" aria-pressed="true">ASSIST ON</button>
+          <button class="model-chip" id="model-button" type="button" aria-haspopup="dialog">
+            <span class="model-icon" aria-hidden="true">✦</span>
+            <span id="model-status">LOCAL MIND</span>
+          </button>
+          <div class="status-chip">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span id="world-status">ECOSYSTEM ONLINE</span>
+          </div>
+        </div>
+      </header>
 
-    <!-- Utility module -->
+      <aside class="agent-panel" aria-label="Elk status">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">AGENT 01</p>
+            <h2>Nia</h2>
+          </div>
+          <div class="panel-heading-actions">
+            <span class="agent-state" id="agent-state">FORAGING</span>
+            <button class="collapse-button" id="agent-collapse-button" type="button" aria-expanded="true" aria-controls="agent-panel-body" aria-label="Collapse Nia status panel">−</button>
+          </div>
+        </div>
+
+        <div class="panel-body" id="agent-panel-body">
+          <blockquote id="agent-thought">Reading the wind and looking for forage.</blockquote>
+
+          <div class="metrics">
+          <div class="metric">
+            <div class="metric-label"><span>Strength</span><output id="strength-value">48</output></div>
+            <div class="meter strength"><span id="strength-meter"></span></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label"><span>Attack</span><output id="attack-value">43</output></div>
+            <div class="meter attack"><span id="attack-meter"></span></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label"><span>Speed</span><output id="speed-value">64</output></div>
+            <div class="meter speed"><span id="speed-meter"></span></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label"><span>Stamina</span><output id="stamina-value">88</output></div>
+            <div class="meter stamina"><span id="stamina-meter"></span></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label"><span>Health</span><output id="health-value">100</output></div>
+            <div class="meter"><span id="health-meter"></span></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label"><span>Hunger</span><output id="hunger-value">42</output></div>
+            <div class="meter warning"><span id="hunger-meter"></span></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label"><span>Thirst</span><output id="thirst-value">36</output></div>
+            <div class="meter water"><span id="thirst-meter"></span></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label"><span>Fear</span><output id="fear-value">16</output></div>
+            <div class="meter fear"><span id="fear-meter"></span></div>
+          </div>
+          </div>
+
+          <div class="condition-list" id="agent-statuses" aria-label="Nia special conditions"></div>
+
+          <section class="mind-panel" aria-label="Nia behavior state machine">
+            <div class="mind-heading">
+              <div>
+                <p class="eyebrow">BEHAVIOR GRAPH</p>
+                <strong id="mind-state">ORIENT</strong>
+              </div>
+              <span id="mind-corruption">FEAR · CLEAR</span>
+            </div>
+            <p class="mind-transition" id="mind-transition">ORIENT · INITIALIZING</p>
+            <div class="mind-sensors">
+              <span><small>VISION</small><strong id="mind-vision">10F · 2B</strong></span>
+              <span><small>ROUTE</small><strong id="mind-route">UNTRACED</strong></span>
+            </div>
+            <div class="mind-priorities" id="mind-priorities" aria-label="Current behavior priorities"></div>
+            <details class="mind-graph">
+              <summary>STATE MACHINE</summary>
+              <div id="mind-graph"></div>
+            </details>
+          </section>
+
+          <div class="decision">
+            <p class="eyebrow">LATEST DECISION</p>
+            <p id="decision-reason">Establishing a local map…</p>
+          </div>
+        </div>
+      </aside>
+
+      <aside class="rival-panel" id="rival-panel" aria-label="Rival species status">
+        <div class="rival-heading">
+          <div>
+            <p class="eyebrow">RIVAL SPECIES</p>
+            <h3>Dusk wolves</h3>
+          </div>
+          <div class="panel-heading-actions">
+            <span class="rival-state" id="predator-state">TRACKING</span>
+            <button class="collapse-button rival-collapse" id="rival-collapse-button" type="button" aria-expanded="true" aria-controls="rival-panel-body" aria-label="Collapse dusk wolf status panel">−</button>
+          </div>
+        </div>
+        <div class="panel-body" id="rival-panel-body">
+          <p class="rival-copy">A territorial pack reads Nia’s trail and uses woodland cover to close the distance.</p>
+          <div class="rival-data">
+            <span><strong id="predator-count">3</strong> ACTIVE</span>
+            <span><strong id="predator-distance">—</strong> NEAREST</span>
+          </div>
+          <div class="threat-meter" aria-hidden="true"><span id="threat-meter"></span></div>
+          <p class="combat-log" id="combat-log" aria-live="polite">No contact yet. Bite and counter-kick rolls will appear here.</p>
+          <div class="predator-roster" id="predator-roster" aria-label="Individual dusk wolf status"></div>
+        </div>
+      </aside>
+
+      <section class="world-readout" aria-label="World statistics">
+        <div><span id="tree-count">0</span><small>VISIBLE TREES</small></div>
+        <div><span id="food-count">0</span><small>VISIBLE FORAGE</small></div>
+        <div><span id="water-count">0</span><small>VISIBLE WATER</small></div>
+        <div><span id="step-count">0</span><small>STEPS</small></div>
+      </section>
+
+      <footer class="controls-hint">
+        <span><kbd>DRAG</kbd> EXPLORE</span>
+        <span><kbd>SCROLL</kbd> ZOOM</span>
+        <span><kbd>ARROWS</kbd> GUIDE NIA</span>
+        <span><kbd>C</kbd> CENTER</span>
+        <span><kbd>L</kbd> FOLLOW</span>
+      </footer>
+
+      <div class="hud-wake-hint" aria-hidden="true">MOVE POINTER TO RESTORE HUD</div>
+
+      <div class="modal-backdrop" id="inference-modal" hidden>
+        <section
+          class="inference-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="inference-title"
+          aria-describedby="inference-description"
+        >
+          <button class="modal-close" id="modal-close" type="button" aria-label="Close inference setup">×</button>
+          <p class="eyebrow">AGENT COGNITION</p>
+          <h2 id="inference-title">Connect Cerebras</h2>
+          <p class="modal-description" id="inference-description">
+            Let Gemma 4 31B rotate through every animal, choosing each next grid cell and action.
+          </p>
+
+          <div class="model-card">
+            <span class="model-icon large" aria-hidden="true">✦</span>
+            <div>
+              <strong>Gemma 4 31B</strong>
+              <span>Cerebras Inference · Round-robin animal decisions</span>
+            </div>
+          </div>
+
+          <form id="api-key-form">
+            <label for="api-key">Cerebras API key</label>
+            <div class="key-field">
+              <input
+                id="api-key"
+                name="api-key"
+                type="password"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                placeholder="csk-…"
+                required
+              />
+              <button id="toggle-key" type="button" aria-label="Show API key">SHOW</button>
+            </div>
+            <p class="security-note">
+              Your key is sent only to this localhost server, held in memory, and erased when the server stops.
+            </p>
+            <p class="form-error" id="inference-error" role="alert" hidden></p>
+            <div class="modal-actions">
+              <button class="secondary-button" id="local-mode-button" type="button">Use local mind</button>
+              <button class="primary-button" id="connect-button" type="submit">Connect Gemma</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </main>
+
+    <script src="node_modules/three/build/three.min.js"></script>
     <script src="utils.js"></script>
-
-    <!-- Game modules -->
     <script src="scene.js"></script>
     <script src="camera.js"></script>
-    <script src="grid.js"></script>
     <script src="materials.js"></script>
+    <script src="grid.js"></script>
+    <script src="water.js"></script>
     <script src="trees.js"></script>
     <script src="food.js"></script>
+    <script src="animal-status.js"></script>
+    <script src="navigation.js"></script>
+    <script src="elk-mind.js"></script>
+    <script src="agent.js"></script>
+    <script src="inference.js"></script>
     <script src="gazelle.js"></script>
-
-    <!-- Main game script -->
+    <script src="predator.js"></script>
+    <script src="ui.js"></script>
     <script src="main.js"></script>
   </body>
 </html>
