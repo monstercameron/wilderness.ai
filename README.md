@@ -2,6 +2,8 @@
 
 [**Open the live simulation →**](https://monstercameron.github.io/wilderness.ai/)
 
+![Wilderness.ai simulation showing Nia the elk, her behavior graph, and the dusk-wolf pack](docs/wilderness-ai.png)
+
 Wilderness.ai is an observable autonomous-creature simulation. An elk named
 Nia perceives a limited local area, maintains needs and spatial memory, chooses
 an action, and moves through a deterministic procedural ecosystem.
